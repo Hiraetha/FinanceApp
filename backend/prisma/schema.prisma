@@ -1,0 +1,151 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum CategoryType {
+  INCOME
+  EXPENSE
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum SavingsGoalStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum PredictionStatus {
+  SAFE
+  CONSIDER
+  NOT_RECOMMENDED
+}
+
+model User {
+  id           String               @id @default(uuid())
+  name         String
+  email        String               @unique
+  passwordHash String
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  categories   Category[]
+  transactions Transaction[]
+  budgets      Budget[]
+  savingsGoals SavingsGoal[]
+  predictions  PurchasePrediction[]
+
+  @@map("users")
+}
+
+model Category {
+  id           String         @id @default(uuid())
+  userId       String
+  name         String
+  type         CategoryType
+  icon         String?
+  color        String?
+  isActive     Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  budgets      Budget[]
+
+  @@index([userId, type, isActive])
+  @@map("categories")
+}
+
+model Transaction {
+  id              String          @id @default(uuid())
+  userId          String
+  categoryId      String
+  type            TransactionType
+  amount          Decimal         @db.Decimal(15, 2)
+  description     String
+  transactionDate DateTime
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category        Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@index([userId, transactionDate])
+  @@index([userId, type])
+  @@index([categoryId])
+  @@map("transactions")
+}
+
+model Budget {
+  id         String   @id @default(uuid())
+  userId     String
+  categoryId String
+  month      Int
+  year       Int
+  amount     Decimal  @db.Decimal(15, 2)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, categoryId, month, year])
+  @@index([userId, month, year])
+  @@map("budgets")
+}
+
+model SavingsGoal {
+  id            String                @id @default(uuid())
+  userId        String
+  name          String
+  targetAmount  Decimal               @db.Decimal(15, 2)
+  currentAmount Decimal               @default(0.00) @db.Decimal(15, 2)
+  targetDate    DateTime?
+  status        SavingsGoalStatus     @default(ACTIVE)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contributions SavingsContribution[]
+
+  @@index([userId, status])
+  @@map("savings_goals")
+}
+
+model SavingsContribution {
+  id               String      @id @default(uuid())
+  goalId           String
+  amount           Decimal     @db.Decimal(15, 2)
+  note             String?
+  contributionDate DateTime    @default(now())
+  createdAt        DateTime    @default(now())
+  goal             SavingsGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@index([goalId])
+  @@map("savings_contributions")
+}
+
+model PurchasePrediction {
+  id                     String           @id @default(uuid())
+  userId                 String
+  productName            String
+  price                  Decimal          @db.Decimal(15, 2)
+  balanceBefore          Decimal          @db.Decimal(15, 2)
+  balanceAfter           Decimal          @db.Decimal(15, 2)
+  predictedMonthlyExpense Decimal          @db.Decimal(15, 2)
+  recommendedBuffer      Decimal          @db.Decimal(15, 2)
+  status                 PredictionStatus
+  analysis               String           @db.Text
+  createdAt              DateTime         @default(now())
+  user                   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("purchase_predictions")
+}

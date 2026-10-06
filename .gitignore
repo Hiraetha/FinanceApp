@@ -1,0 +1,57 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Environment variables & secrets (EXCLUDED AS REQUESTED)
+.env
+.env*
+*.env
+*.env*
+env.example
+.env.example
+*/.env
+*/.env*
+*/env.example
+*/.env.example
+
+# Stitch screens (EXCLUDED AS REQUESTED)
+stitch_screens/
+stitch_screens_v2/
+*stitch_screen*
+*stitch_screens*
+*Stitch*
+stitch/
+
+# Docs folder (EXCLUDED AS REQUESTED)
+docs/
+*/docs/
+
+# Build & compiled outputs
+dist/
+build/
+web-build/
+*/dist/
+*/build/
+
+# Expo & Metro
+.expo/
+*/.expo/
+.metro-health-check*
+expo-env.d.ts
+
+# Logs & debug
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
+
+# Native folders
+/ios
+/android

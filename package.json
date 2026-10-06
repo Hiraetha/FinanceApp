@@ -1,0 +1,12 @@
+{
+  "name": "finance-app-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "My Finance Management App - Backend & Mobile Workspace",
+  "scripts": {
+    "start": "npm --prefix mobile start",
+    "mobile": "npm --prefix mobile start",
+    "mobile:android": "npm --prefix mobile run android",
+    "backend": "npm --prefix backend run start:dev"
+  }
+}
