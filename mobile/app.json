@@ -11,14 +11,12 @@
     },
     "android": {
       "package": "com.hiraetha.myfinance",
-      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#0F131E",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      },
-      "predictiveBackGestureEnabled": false
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
