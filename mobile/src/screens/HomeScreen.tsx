@@ -26,8 +26,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
     fetchDashboard();
   }, []);
 
-  const healthScore = dashboard?.financialHealth?.score ?? 100;
-  const healthStatus = dashboard?.financialHealth?.status ?? 'HEALTHY';
+  const healthScore = dashboard?.financialHealth?.score ?? 0;
+  const healthStatus = dashboard?.financialHealth?.status ?? (healthScore > 0 ? 'HEALTHY' : 'UNRATED');
   const rawBalance =
     parseFloat((dashboard as any)?.currentBalance || dashboard?.balance || '0') || 0;
   const incomeVal =
@@ -42,8 +42,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
     parseFloat(
       (dashboard as any)?.budgetSummary?.totalBudget ||
         (dashboard?.budgets as any)?.totalBudget ||
-        '2100000',
-    ) || 2100000;
+        '0',
+    ) || 0;
   const totalSpent =
     parseFloat(
       (dashboard as any)?.budgetSummary?.totalUsed ||
@@ -53,20 +53,26 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
   const budgetRatio =
     (dashboard as any)?.budgetSummary?.percentage !== undefined
       ? Math.round((dashboard as any).budgetSummary.percentage)
-      : Math.min(Math.round((totalSpent / (totalBudget || 1)) * 100), 100);
+      : (totalBudget > 0 ? Math.min(Math.round((totalSpent / totalBudget) * 100), 100) : 0);
   const budgetLeft =
     parseFloat((dashboard as any)?.budgetSummary?.totalRemaining || '0') ||
     Math.max(totalBudget - totalSpent, 0);
   const runwayDays =
-    (dashboard as any)?.runway?.estimatedDays ?? dashboard?.moneyRunway?.runwayDays ?? 96;
-  const savingsRateVal = dashboard?.financialHealth?.savingsRate ?? 45;
-  const disciplineVal = (dashboard?.financialHealth as any)?.budgetAdherence
-    ? Math.round((dashboard?.financialHealth as any).budgetAdherence)
-    : 92;
+    (dashboard as any)?.runway?.estimatedDays ?? dashboard?.moneyRunway?.runwayDays ?? dashboard?.financialHealth?.runwayDays ?? 0;
+  const savingsRateVal =
+    dashboard?.financialHealth?.savingsRate !== undefined
+      ? Math.round(dashboard.financialHealth.savingsRate)
+      : (incomeVal > 0 ? Math.max(0, Math.min(100, Math.round(((incomeVal - expenseVal) / incomeVal) * 100))) : 0);
+  const disciplineVal =
+    (dashboard?.financialHealth as any)?.budgetAdherence !== undefined
+      ? Math.round((dashboard?.financialHealth as any).budgetAdherence)
+      : (totalBudget > 0 ? Math.max(0, Math.min(100, 100 - Math.max(0, budgetRatio - 100))) : 0);
   const emergencyReserveText =
-    runwayDays >= 30
-      ? `${(runwayDays / 30).toFixed(1)} Months Runway`
-      : `${runwayDays} Days Runway`;
+    runwayDays > 0
+      ? runwayDays >= 30
+        ? `${(runwayDays / 30).toFixed(1)} Bulan Runway`
+        : `${runwayDays} Hari Runway`
+      : '0 Hari Runway';
 
   return (
     <ScrollView
@@ -312,14 +318,46 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
           {/* Card Header */}
           <View className="flex-row items-center justify-between mb-3.5">
             <View className="flex-row items-center gap-2">
-              <Ionicons name="shield-checkmark" size={20} color="#10e57a" />
+              <Ionicons
+                name="shield-checkmark"
+                size={20}
+                color={healthScore === 0 ? '#8e96a8' : '#10e57a'}
+              />
               <Text className="text-white text-base font-bold tracking-tight">
-                Financial Health
+                Financial Health 
               </Text>
             </View>
-            <View className="px-2.5 py-0.5 rounded bg-[#10e57a]/15">
-              <Text className="text-[#10e57a] text-[11px] font-bold uppercase tracking-wider">
-                {healthStatus || 'EXCELLENT'}
+            <View
+              className="px-2.5 py-0.5 rounded"
+              style={{
+                backgroundColor:
+                  healthScore === 0
+                    ? 'rgba(142, 150, 168, 0.15)'
+                    : healthScore >= 80
+                    ? 'rgba(16, 229, 122, 0.15)'
+                    : healthScore >= 60
+                    ? 'rgba(59, 130, 246, 0.15)'
+                    : healthScore >= 40
+                    ? 'rgba(245, 158, 11, 0.15)'
+                    : 'rgba(239, 68, 68, 0.15)',
+              }}
+            >
+              <Text
+                className="text-[11px] font-bold uppercase tracking-wider"
+                style={{
+                  color:
+                    healthScore === 0
+                      ? '#8e96a8'
+                      : healthScore >= 80
+                      ? '#10e57a'
+                      : healthScore >= 60
+                      ? '#3b82f6'
+                      : healthScore >= 40
+                      ? '#f59e0b'
+                      : '#ef4444',
+                }}
+              >
+                {healthScore === 0 ? 'UNRATED' : (healthStatus || 'EXCELLENT')}
               </Text>
             </View>
           </View>
@@ -337,26 +375,44 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
                 }}
               />
 
-              {/* Active Neon Green Arc */}
-              <View
-                className="absolute w-[72px] h-[72px] rounded-full"
-                style={{
-                  borderWidth: 4.5,
-                  borderColor: '#10e57a',
-                  borderBottomColor: 'transparent',
-                  borderLeftColor: healthScore < 70 ? 'transparent' : '#10e57a',
-                  transform: [{ rotate: '-45deg' }],
-                  shadowColor: '#10e57a',
-                  shadowOffset: { width: 0, height: 0 },
-                  shadowOpacity: 0.6,
-                  shadowRadius: 6,
-                  elevation: 4,
-                }}
-              />
+              {/* Active Neon Arc - only display if healthScore > 0 */}
+              {healthScore > 0 && (
+                <View
+                  className="absolute w-[72px] h-[72px] rounded-full"
+                  style={{
+                    borderWidth: 4.5,
+                    borderColor:
+                      healthScore >= 80
+                        ? '#10e57a'
+                        : healthScore >= 60
+                        ? '#3b82f6'
+                        : healthScore >= 40
+                        ? '#f59e0b'
+                        : '#ef4444',
+                    borderBottomColor: 'transparent',
+                    borderLeftColor:
+                      healthScore < 70
+                        ? 'transparent'
+                        : healthScore >= 80
+                        ? '#10e57a'
+                        : '#3b82f6',
+                    transform: [{ rotate: '-45deg' }],
+                    shadowColor: healthScore >= 80 ? '#10e57a' : '#3b82f6',
+                    shadowOffset: { width: 0, height: 0 },
+                    shadowOpacity: 0.6,
+                    shadowRadius: 6,
+                    elevation: 4,
+                  }}
+                />
+              )}
 
               {/* Center Score */}
               <View className="items-center justify-center">
-                <Text className="text-white text-base font-extrabold tracking-tight">
+                <Text
+                  className={`text-base font-extrabold tracking-tight ${
+                    healthScore === 0 ? 'text-[#8e96a8]' : 'text-white'
+                  }`}
+                >
                   {healthScore}
                 </Text>
                 <Text className="text-[#8e96a8] text-[9px] font-medium -mt-1">
@@ -370,13 +426,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
               <View className="flex-row justify-between mb-2">
                 <View className="flex-1">
                   <Text className="text-[#8e96a8] text-[11px] font-medium">Savings Rate</Text>
-                  <Text className="text-[#10e57a] text-base font-bold mt-0.5">
+                  <Text
+                    className={`text-base font-bold mt-0.5 ${
+                      savingsRateVal > 0 ? 'text-[#10e57a]' : 'text-[#8e96a8]'
+                    }`}
+                  >
                     {savingsRateVal}%
                   </Text>
                 </View>
                 <View className="flex-1 ml-2">
                   <Text className="text-[#8e96a8] text-[11px] font-medium">Discipline</Text>
-                  <Text className="text-white text-base font-bold mt-0.5">
+                  <Text
+                    className={`text-base font-bold mt-0.5 ${
+                      disciplineVal > 0 ? 'text-white' : 'text-[#8e96a8]'
+                    }`}
+                  >
                     {disciplineVal}%
                   </Text>
                 </View>
@@ -384,7 +448,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
 
               <View>
                 <Text className="text-[#8e96a8] text-[11px] font-medium">Emergency Reserve</Text>
-                <Text className="text-white text-sm font-semibold mt-0.5">
+                <Text
+                  className={`text-sm font-semibold mt-0.5 ${
+                    runwayDays > 0 ? 'text-white' : 'text-[#8e96a8]'
+                  }`}
+                >
                   {emergencyReserveText}
                 </Text>
               </View>

@@ -114,7 +114,7 @@ export interface DashboardData {
   };
   financialHealth?: {
     score: number;
-    status: 'POOR' | 'MODERATE' | 'HEALTHY' | 'EXCELLENT';
+    status: 'POOR' | 'MODERATE' | 'HEALTHY' | 'EXCELLENT' | 'UNRATED' | 'CRITICAL' | 'WARNING' | 'FAIR' | string;
     label?: string;
     color?: string;
     savingsRate?: number;

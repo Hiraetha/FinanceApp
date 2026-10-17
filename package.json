@@ -7,6 +7,8 @@
     "start": "npm --prefix mobile start",
     "mobile": "npm --prefix mobile start",
     "mobile:android": "npm --prefix mobile run android",
-    "backend": "npm --prefix backend run start:dev"
+    "backend": "npm --prefix backend run start:dev",
+    "build:apk": "npm --prefix mobile run build:apk",
+    "build:bundle": "npm --prefix mobile run build:bundle"
   }
 }

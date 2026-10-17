@@ -1,17 +1,19 @@
 {
   "expo": {
-    "name": "expo_app",
-    "slug": "expo_app",
+    "name": "My Finance",
+    "slug": "myfinance-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true
     },
     "android": {
+      "package": "com.hiraetha.myfinance",
+      "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0F131E",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -20,6 +22,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "7603e6fb-67e0-44d5-bfeb-554d80a2c9cd"
+      }
+    },
+    "owner": "hiraetha"
   }
 }

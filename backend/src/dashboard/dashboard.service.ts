@@ -82,6 +82,7 @@ export class DashboardService {
       currentBalance: currentBalanceDecimal,
       budgetSummary: budgets.summary,
       savingsGoals,
+      runway,
     });
 
     return {
@@ -120,7 +121,53 @@ export class DashboardService {
       percentage: number;
     };
     savingsGoals: any[];
+    runway?: {
+      estimatedDays: number | null;
+      hasEnoughData: boolean;
+    };
   }) {
+    const isZeroActivity =
+      params.currentBalance.isZero() &&
+      params.income.isZero() &&
+      params.expense.isZero();
+
+    // Calculate real savings rate
+    let savingsRate = 0;
+    if (params.income.greaterThan(0)) {
+      const net = params.income.minus(params.expense);
+      savingsRate = Math.max(
+        0,
+        Math.min(100, Math.round(net.dividedBy(params.income).times(100).toNumber())),
+      );
+    }
+
+    // Calculate budget adherence
+    let budgetAdherence = 0;
+    if (Number(params.budgetSummary.totalBudget) > 0) {
+      const used = params.budgetSummary.percentage;
+      budgetAdherence = Math.max(
+        0,
+        Math.min(100, Math.round(100 - (used > 100 ? used - 100 : 0))),
+      );
+    } else if (params.income.greaterThan(0) && params.expense.lessThanOrEqualTo(params.income)) {
+      budgetAdherence = 100;
+    }
+
+    const runwayDays = params.runway?.estimatedDays ?? 0;
+
+    // If completely new user or 0 balance with 0 income/expense: score is strictly 0!
+    if (isZeroActivity) {
+      return {
+        score: 0,
+        status: 'UNRATED',
+        label: 'Belum Ada Data',
+        color: '#8E96A8',
+        savingsRate: 0,
+        budgetAdherence: 0,
+        runwayDays: 0,
+      };
+    }
+
     let score = 50; // base score
 
     // 1. Income vs Expense ratio (+/- 25 pts)
@@ -134,6 +181,8 @@ export class DashboardService {
       } else {
         score -= 20; // deficit
       }
+    } else if (params.expense.greaterThan(0)) {
+      score -= 25; // only expenses, no income
     }
 
     // 2. Budget discipline (+/- 15 pts)
@@ -160,7 +209,7 @@ export class DashboardService {
         score += 5;
       }
     } else {
-      score -= 15;
+      score -= 25;
     }
 
     // Clamp score between 0 and 100
@@ -193,6 +242,9 @@ export class DashboardService {
       status,
       label,
       color,
+      savingsRate,
+      budgetAdherence,
+      runwayDays,
     };
   }
 }

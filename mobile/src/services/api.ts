@@ -5,8 +5,16 @@ import Constants from 'expo-constants';
 
 // Base API URL configuration
 // Dynamically detects the laptop's IP address when running via Expo Go on physical device (e.g. 192.168.1.132)
-// Falls back to laptop LAN IP 192.168.1.132, then 10.0.2.2 (Android Emulator), or localhost
 export const getApiBaseUrl = (): string => {
+  // 0. Environment variable or extra config (for standalone APK / production)
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+  const extraApiUrl = (Constants.expoConfig?.extra as any)?.apiUrl;
+  if (extraApiUrl) {
+    return extraApiUrl;
+  }
+
   // 1. Try hostUri from expoConfig
   const hostUri = Constants.expoConfig?.hostUri;
   if (hostUri) {
