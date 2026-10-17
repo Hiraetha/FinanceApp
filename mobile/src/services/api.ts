@@ -4,25 +4,43 @@ import { storage } from './storage';
 import Constants from 'expo-constants';
 
 // Base API URL configuration
-// Dynamically detects the laptop's IP address when running via Expo Go on physical device (e.g. 192.168.1.132)
+let configuredBaseUrl: string | null = null;
+
+export const setCustomApiUrl = async (url: string): Promise<void> => {
+  const clean = url.trim().replace(/\/+$/, '');
+  configuredBaseUrl = clean;
+  await storage.setItem('custom_api_url', clean);
+};
+
+export const getCustomApiUrl = async (): Promise<string | null> => {
+  return await storage.getItem('custom_api_url');
+};
+
 export const getApiBaseUrl = (): string => {
-  // 0. Environment variable or extra config (for standalone APK / production)
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL;
-  }
-  const extraApiUrl = (Constants.expoConfig?.extra as any)?.apiUrl;
-  if (extraApiUrl) {
-    return extraApiUrl;
+  // 0. Custom URL configured by user at runtime
+  if (configuredBaseUrl) {
+    return configuredBaseUrl;
   }
 
-  // 1. Try hostUri from expoConfig
+  // 1. Environment variable
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL.replace(/\/+$/, '');
+  }
+
+  // 2. Extra config from app.json
+  const extraApiUrl = (Constants.expoConfig?.extra as any)?.apiUrl;
+  if (extraApiUrl) {
+    return extraApiUrl.replace(/\/+$/, '');
+  }
+
+  // 3. Try hostUri from expoConfig
   const hostUri = Constants.expoConfig?.hostUri;
   if (hostUri) {
     const ip = hostUri.split(':')[0];
     if (ip && ip !== 'localhost') return `http://${ip}:3000`;
   }
 
-  // 2. Try expoGoConfig or manifest debuggerHost
+  // 4. Try expoGoConfig or manifest debuggerHost
   const debuggerHost =
     (Constants as any).expoGoConfig?.debuggerHost ||
     (Constants as any).manifest2?.extra?.expoGo?.debuggerHost ||
@@ -32,7 +50,7 @@ export const getApiBaseUrl = (): string => {
     if (ip && ip !== 'localhost') return `http://${ip}:3000`;
   }
 
-  // 3. Try experienceUrl or linkingUri
+  // 5. Try experienceUrl or linkingUri
   const linkingUri = Constants.linkingUri || (Constants as any).experienceUrl;
   if (linkingUri && typeof linkingUri === 'string' && linkingUri.includes('://')) {
     const match = linkingUri.match(/:\/\/([^:/]+)/);
@@ -41,8 +59,8 @@ export const getApiBaseUrl = (): string => {
     }
   }
 
-  // 4. Default fallback
-  return '';
+  // 6. Default fallback to laptop Wi-Fi IP for standalone APK testing
+  return 'http://192.168.1.112:3000';
 };
 
 export const API_BASE_URL = getApiBaseUrl();
@@ -79,9 +97,15 @@ export const api = axios.create({
 api.interceptors.request.use(
   async (config) => {
     try {
+      if (!configuredBaseUrl) {
+        const saved = await storage.getItem('custom_api_url');
+        if (saved) configuredBaseUrl = saved;
+      }
       const activeBase = getApiBaseUrl();
-      if (!config.baseURL || config.baseURL.includes('localhost') || config.baseURL.includes('192.168.1.132')) {
+      if (!config.baseURL || config.baseURL === '' || config.baseURL.includes('localhost')) {
         config.baseURL = activeBase;
+      } else if (configuredBaseUrl) {
+        config.baseURL = configuredBaseUrl;
       }
       const token = await storage.getItem('access_token');
       if (token && config.headers) {

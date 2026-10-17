@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,10 +9,13 @@ import {
   Platform,
   ScrollView,
   Image,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../stores/authStore';
 import { showAlert } from '../stores/alertStore';
+import { getApiBaseUrl, setCustomApiUrl, getCustomApiUrl } from '../services/api';
+import axios from 'axios';
 
 export const AuthScreen: React.FC = () => {
   const [isRegister, setIsRegister] = useState(false);
@@ -20,6 +23,52 @@ export const AuthScreen: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { login, register, loginDemo, isLoading, error, clearError } = useAuthStore();
+
+  const [serverUrl, setServerUrl] = useState(getApiBaseUrl());
+  const [inputServerUrl, setInputServerUrl] = useState(getApiBaseUrl());
+  const [showServerModal, setShowServerModal] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  useEffect(() => {
+    getCustomApiUrl().then((saved) => {
+      const active = saved || getApiBaseUrl();
+      setServerUrl(active);
+      setInputServerUrl(active);
+    });
+  }, []);
+
+  const handleTestConnection = async () => {
+    if (!inputServerUrl.trim()) return;
+    setIsTesting(true);
+    setTestResult(null);
+    try {
+      const clean = inputServerUrl.trim().replace(/\/+$/, '');
+      const res = await axios.get(`${clean}/categories`, { timeout: 4000 });
+      if (res.status >= 200 && res.status < 400) {
+        setTestResult({ success: true, message: 'Terhubung! Server merespons dengan baik.' });
+      } else {
+        setTestResult({ success: false, message: `Status respon: ${res.status}` });
+      }
+    } catch (err: any) {
+      setTestResult({
+        success: false,
+        message: err.message || 'Gagal terhubung. Pastikan laptop & HP di Wi-Fi yang sama.',
+      });
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  const handleSaveServerUrl = async () => {
+    if (!inputServerUrl.trim()) return;
+    const clean = inputServerUrl.trim().replace(/\/+$/, '');
+    await setCustomApiUrl(clean);
+    setServerUrl(clean);
+    setShowServerModal(false);
+    clearError();
+    showAlert('Berhasil', `Server API diubah ke:\n${clean}`, undefined, 'success');
+  };
 
   const handleSubmit = async () => {
     if (isRegister) {
@@ -76,9 +125,23 @@ export const AuthScreen: React.FC = () => {
 
         {/* Error message */}
         {error ? (
-          <View className="bg-red-500/10 border border-red-500/30 p-3.5 rounded-xl mb-6 flex-row items-center">
-            <Ionicons name="alert-circle-outline" size={20} color="#ef4444" />
-            <Text className="text-red-400 text-xs ml-2 flex-1">{error}</Text>
+          <View className="bg-red-500/10 border border-red-500/30 p-3.5 rounded-xl mb-6">
+            <View className="flex-row items-center mb-1">
+              <Ionicons name="alert-circle-outline" size={20} color="#ef4444" />
+              <Text className="text-red-400 text-xs ml-2 font-semibold flex-1">{error}</Text>
+            </View>
+            <Text className="text-[#8e96a8] text-[11px] mb-2.5 ml-7">
+              Tidak dapat terhubung ke server ({serverUrl}).
+            </Text>
+            <TouchableOpacity
+              onPress={() => setShowServerModal(true)}
+              className="bg-[#252a3b] py-2 px-3 rounded-lg flex-row items-center justify-center self-start ml-7"
+            >
+              <Ionicons name="settings-outline" size={14} color="#10e57a" />
+              <Text className="text-[#10e57a] text-xs font-semibold ml-1.5">
+                Ubah Server API
+              </Text>
+            </TouchableOpacity>
           </View>
         ) : null}
 
@@ -196,6 +259,109 @@ export const AuthScreen: React.FC = () => {
             </Text>
           </TouchableOpacity>
         </View>
+
+        {/* Server Config Footer */}
+        <TouchableOpacity
+          onPress={() => setShowServerModal(true)}
+          className="mt-6 flex-row items-center justify-center gap-1.5 py-2 px-3.5 rounded-full bg-[#171b27] self-center border border-[#252a3b]"
+        >
+          <Ionicons name="server-outline" size={13} color="#10e57a" />
+          <Text className="text-[#8e96a8] text-xs font-medium" numberOfLines={1}>
+            Server: {serverUrl}
+          </Text>
+          <Ionicons name="create-outline" size={13} color="#8e96a8" />
+        </TouchableOpacity>
+
+        {/* Server Configuration Modal */}
+        <Modal
+          visible={showServerModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowServerModal(false)}
+        >
+          <View className="flex-1 bg-black/80 items-center justify-center p-5">
+            <View className="w-full max-w-sm bg-[#171c2a] border border-[#262a3a] rounded-3xl p-5 shadow-2xl">
+              <View className="flex-row items-center justify-between mb-3">
+                <View className="flex-row items-center gap-2">
+                  <View className="w-8 h-8 rounded-full bg-[#10e57a]/20 items-center justify-center">
+                    <Ionicons name="server" size={16} color="#10e57a" />
+                  </View>
+                  <Text className="text-white text-base font-bold">Pengaturan Server API</Text>
+                </View>
+                <TouchableOpacity onPress={() => setShowServerModal(false)}>
+                  <Ionicons name="close" size={22} color="#8e96a8" />
+                </TouchableOpacity>
+              </View>
+
+              <Text className="text-[#8e96a8] text-xs mb-3">
+                Masukkan alamat IP laptop atau URL domain backend Anda.
+              </Text>
+
+              <View className="bg-[#0f131e] border border-[#252a3b] rounded-xl px-3.5 py-2.5 mb-3">
+                <Text className="text-[#8e96a8] text-[10px] uppercase font-bold tracking-wider mb-1">
+                  URL Backend
+                </Text>
+                <TextInput
+                  value={inputServerUrl}
+                  onChangeText={(t) => {
+                    setInputServerUrl(t);
+                    setTestResult(null);
+                  }}
+                  placeholder="http://192.168.1.112:3000"
+                  placeholderTextColor="#4b5563"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  className="text-white text-sm"
+                />
+              </View>
+
+              {testResult && (
+                <View
+                  className={`p-2.5 rounded-xl mb-3 flex-row items-center ${
+                    testResult.success ? 'bg-[#10e57a]/15 border border-[#10e57a]/30' : 'bg-red-500/15 border border-red-500/30'
+                  }`}
+                >
+                  <Ionicons
+                    name={testResult.success ? 'checkmark-circle' : 'alert-circle'}
+                    size={16}
+                    color={testResult.success ? '#10e57a' : '#ef4444'}
+                  />
+                  <Text
+                    className={`text-xs ml-2 flex-1 font-medium ${
+                      testResult.success ? 'text-[#10e57a]' : 'text-red-400'
+                    }`}
+                  >
+                    {testResult.message}
+                  </Text>
+                </View>
+              )}
+
+              <View className="flex-row gap-2 mt-2">
+                <TouchableOpacity
+                  onPress={handleTestConnection}
+                  disabled={isTesting}
+                  className="flex-1 bg-[#252a3b] py-3 rounded-xl items-center flex-row justify-center"
+                >
+                  {isTesting ? (
+                    <ActivityIndicator size="small" color="#10e57a" />
+                  ) : (
+                    <>
+                      <Ionicons name="pulse" size={16} color="#10e57a" />
+                      <Text className="text-white text-xs font-semibold ml-1.5">Tes Koneksi</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleSaveServerUrl}
+                  className="flex-1 bg-[#10e57a] py-3 rounded-xl items-center justify-center"
+                >
+                  <Text className="text-[#0f131e] text-xs font-bold">Simpan</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </ScrollView>
     </KeyboardAvoidingView>
   );
