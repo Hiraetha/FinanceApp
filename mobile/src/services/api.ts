@@ -59,8 +59,8 @@ export const getApiBaseUrl = (): string => {
     }
   }
 
-  // 6. Default fallback to laptop Wi-Fi IP for standalone APK testing
-  return 'http://192.168.1.112:3000';
+  // 6. Default fallback
+  return '';
 };
 
 export const API_BASE_URL = getApiBaseUrl();

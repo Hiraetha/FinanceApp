@@ -53,7 +53,7 @@ export const AuthScreen: React.FC = () => {
     } catch (err: any) {
       setTestResult({
         success: false,
-        message: err.message || 'Gagal terhubung. Pastikan laptop & HP di Wi-Fi yang sama.',
+        message: err.message || 'Gagal terhubung. Pastikan URL server benar dan server sedang online.',
       });
     } finally {
       setIsTesting(false);
@@ -294,7 +294,7 @@ export const AuthScreen: React.FC = () => {
               </View>
 
               <Text className="text-[#8e96a8] text-xs mb-3">
-                Masukkan alamat IP laptop atau URL domain backend Anda.
+                Masukkan URL API server backend Anda (contoh: https://your-backend.railway.app).
               </Text>
 
               <View className="bg-[#0f131e] border border-[#252a3b] rounded-xl px-3.5 py-2.5 mb-3">
@@ -307,7 +307,7 @@ export const AuthScreen: React.FC = () => {
                     setInputServerUrl(t);
                     setTestResult(null);
                   }}
-                  placeholder="http://192.168.1.112:3000"
+                  placeholder="https://your-backend.railway.app"
                   placeholderTextColor="#4b5563"
                   autoCapitalize="none"
                   autoCorrect={false}
